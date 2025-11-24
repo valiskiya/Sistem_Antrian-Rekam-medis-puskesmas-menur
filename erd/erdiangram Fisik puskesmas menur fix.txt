@@ -1,0 +1,163 @@
+erDiagram
+    %% Entitas Pasien (gabungan: data dasar dengan status)
+    Pasien {
+        int ID_Pasien PK
+        string Nama_Lengkap
+        date Tanggal_Lahir
+        enum Jenis_Kelamin
+        text Alamat
+        string No_Telepon
+        string No_KTP UK
+        string Status
+        date Tanggal_Daftar
+    }
+
+    %% Entitas Pegawai (gabungan: staf umum, termasuk admin/kasir)
+    Pegawai {
+        int ID_Pegawai PK
+        string Nama_Lengkap
+        enum Jabatan
+        date Tanggal_Lahir
+        string No_SIP
+        text Alamat
+        string No_Telepon
+        date Tanggal_Masuk_Kerja
+    }
+
+    %% Entitas Dokter (gabungan: inheritance dari Pegawai, dengan detail tambahan)
+    Dokter {
+        int ID_Dokter PK, FK
+        string Nama_Dokter
+        string Spesialisasi
+        string Jam_Praktek
+        text Jadwal_Konsultasi
+    }
+
+    %% Entitas Poli (dari versi pertama: poliklinik)
+    Poli {
+        int ID_Poli PK
+        string Nama_Poli
+        string Deskripsi
+    }
+
+    %% Entitas Kunjungan (gabungan: proses kunjungan dengan FK eksplisit)
+    Kunjungan {
+        int ID_Kunjungan PK
+        date Tanggal_Kunjungan
+        time Jam_Kunjungan
+        text Keluhan_Awal
+        int ID_Pasien FK
+        int ID_Dokter FK
+        int ID_Poli FK
+        int ID_Pegawai_Admin FK
+    }
+
+    %% Entitas Rekam_Medis (gabungan: hasil medis dengan FK)
+    Rekam_Medis {
+        int ID_Rekam PK
+        text Diagnosis
+        text Terapi
+        text Catatan_Dokter
+        date Tanggal_Pemeriksaan
+        int ID_Kunjungan FK
+        int ID_Pasien FK
+    }
+
+    %% Entitas Obat (gabungan: inventori dengan decimal untuk harga)
+    Obat {
+        int ID_Obat PK
+        string Nama_Obat
+        string Jenis_Obat
+        int Stok_Tersedia
+        decimal Harga_Satuan
+        date Tanggal_Kedaluwarsa
+        string Supplier
+    }
+
+    %% Entitas Resep_Obat (gabungan: junction M:N dengan FK)
+    Resep_Obat {
+        int ID_Resep PK
+        string Dosis
+        int Jumlah
+        date Tanggal_Resep
+        int ID_Rekam_Medis FK
+        int ID_Obat FK
+        int ID_Pasien FK
+    }
+
+    %% Entitas Laporan (gabungan: dokumen internal)
+    Laporan {
+        int ID_Laporan PK
+        string Jenis_Laporan
+        date Tanggal_Laporan
+        text Deskripsi
+        int ID_Pegawai FK
+    }
+
+    %% Entitas Pembayaran (gabungan: transaksi dengan enum)
+    Pembayaran {
+        int ID_Pembayaran PK
+        date Tanggal_Pembayaran
+        decimal Jumlah_Total
+        enum Metode_Pembayaran
+        string Status_Pembayaran
+        text Catatan_Pembayaran
+        int ID_Kunjungan FK
+        int ID_Pegawai_Kasir FK
+    }
+
+    %% Entitas Biaya (gabungan: rincian biaya dengan FK opsional)
+    Biaya {
+        int ID_Biaya PK
+        decimal Jumlah_Biaya
+        string Jenis_Biaya
+        date Tanggal_Biaya
+        int ID_Kunjungan FK
+        int ID_Obat FK
+    }
+
+    %% Entitas Jadwal_Praktik (gabungan: scheduling dengan time dan FK)
+    Jadwal_Praktik {
+        int ID_Jadwal PK
+        date Tanggal
+        time Jam_Mulai
+        time Jam_Selesai
+        string Hari
+        int Kuota_Pasien
+        string Status
+        int ID_Dokter FK
+    }
+
+    %% Entitas Pemeriksaan (gabungan: detail prosedur dengan FK)
+    Pemeriksaan {
+        int ID_Pemeriksaan PK
+        string Jenis_Pemeriksaan
+        text Hasil_Pemeriksaan
+        text Rekomendasi
+        date Tanggal_Pemeriksaan
+        time Jam_Pemeriksaan
+        int ID_Kunjungan FK
+        int ID_Pegawai_Pemeriksa FK
+    }
+
+    %% Relasi Gabungan (semua unik dari kedua versi, dengan kardinalitas logis)
+    Pasien ||--o{ Kunjungan : "memiliki (1:N)"
+    Dokter ||--o{ Kunjungan : "menangani (1:N)"
+    Poli ||--o{ Kunjungan : "terdaftar di (1:N)"
+    Pegawai ||--o{ Kunjungan : "mendaftarkan (1:N, admin)"
+    Kunjungan ||--|| Rekam_Medis : "menghasilkan (1:1)"
+    Pasien ||--o{ Rekam_Medis : "memiliki riwayat (1:N)"
+    Rekam_Medis ||--o{ Resep_Obat : "meresepkan (1:N)"
+    Obat ||--o{ Resep_Obat : "diresepkan (1:N, M:N junction)"
+    Pegawai ||--o{ Laporan : "membuat (1:N)"
+    Pegawai ||--|| Dokter : "adalah (1:1, inheritance)"
+    Kunjungan ||--o{ Pembayaran : "dibayar melalui (1:N)"
+    Pegawai ||--o{ Pembayaran : "memproses (1:N, kasir)"
+    Kunjungan ||--o{ Biaya : "menghasilkan (1:N)"
+    Obat ||--o{ Biaya : "kontribusi (1:N, opsional)"
+    Dokter ||--o{ Jadwal_Praktik : "memiliki jadwal (1:N)"
+    Jadwal_Praktik ||--o{ Kunjungan : "dijadwalkan pada (1:N)"
+    Kunjungan ||--o{ Pemeriksaan : "melibatkan (1:N)"
+    Rekam_Medis ||--o{ Pemeriksaan : "berdasarkan hasil (1:N)"
+    Pegawai ||--o{ Pemeriksaan : "melakukan (1:N)"
+    Pasien ||--o{ Resep_Obat : "menerima resep (1:N, opsional)"

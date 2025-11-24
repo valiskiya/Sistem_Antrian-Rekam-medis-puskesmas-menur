@@ -1,0 +1,46 @@
+flowchart TD
+    A["Start: Pasien Datang ke Rumah Sakit"] --> B["Admin (Pegawai) Mendaftarkan Pasien<br/>- Insert/Cek Pasien: Nama_Lengkap, No_KTP (UK), Status, Tanggal_Daftar<br/>- FK: ID_Pegawai_Admin (relasi 1:N)"]
+    
+    B --> C["Pilih Poli dan Cek Jadwal Praktik Dokter<br/>- Query Poli: Nama_Poli, Deskripsi<br/>- Query Jadwal_Praktik: Tanggal, Jam_Mulai/Selesai, Status (available/full/cancelled), ID_Dokter FK<br/>- Relasi: Poli 1:N Kunjungan, Dokter 1:N Jadwal_Praktik"]
+    
+    C --> D{"Jadwal Available<br/>di Poli Terpilih?"}
+    
+    D -->|No| E["Reschedule atau Tunggu<br/>- Update Jadwal_Praktik: Status = 'cancelled' atau 'full'<br/>- Loop ke Cek Jadwal"]
+    
+    E --> C
+    
+    D -->|Yes| F["Buat Kunjungan<br/>- Insert Kunjungan: Tanggal/Jam_Kunjungan, Keluhan_Awal<br/>- FK: ID_Pasien, ID_Dokter, ID_Poli, ID_Pegawai_Admin, ID_Jadwal_Praktik (implisit)<br/>- Relasi: Pasien 1:N Kunjungan, Dokter 1:N Kunjungan"]
+    
+    F --> G["Dokter Menangani Kunjungan di Poli<br/>- ID_Dokter dari Dokter (inheritance Pegawai: Jabatan='Dokter', No_SIP)<br/>- Relasi: Pegawai 1:1 Dokter"]
+    
+    G --> H["Lakukan Pemeriksaan<br/>- Insert Pemeriksaan: Jenis_Pemeriksaan (fisik/lab), Hasil/Rekomendasi, Tanggal/Jam_Pemeriksaan<br/>- FK: ID_Kunjungan, ID_Pegawai_Pemeriksa (Dokter/Teknisi)<br/>- Relasi: Kunjungan 1:N Pemeriksaan, Pegawai 1:N Pemeriksaan"]
+    
+    H --> I["Buat Rekam Medis<br/>- Insert Rekam_Medis: Diagnosis, Terapi, Catatan_Dokter, Tanggal_Pemeriksaan<br/>- FK: ID_Kunjungan (1:1), ID_Pasien<br/>- Relasi: Kunjungan 1:1 Rekam_Medis, Pasien 1:N Rekam_Medis, Rekam_Medis 1:N Pemeriksaan"]
+    
+    I --> J{"Butuh Resep Obat?"}
+    
+    J -->|No| K["Hitung Biaya Kunjungan/Pemeriksaan<br/>- Insert Biaya: Jenis_Biaya (konsultasi/pemeriksaan), Jumlah_Biaya<br/>- FK: ID_Kunjungan<br/>- Relasi: Kunjungan 1:N Biaya"]
+    
+    J -->|Yes| L["Buat Resep Obat<br/>- Insert Resep_Obat: Dosis, Jumlah, Tanggal_Resep<br/>- FK: ID_Rekam_Medis, ID_Obat, ID_Pasien (M:N junction)<br/>- Update Obat: Stok_Tersedia -= Jumlah<br/>- Relasi: Rekam_Medis 1:N Resep_Obat, Obat 1:N Resep_Obat, Pasien 1:N Resep_Obat (opsional)"]
+    
+    L --> M["Hitung Biaya Obat<br/>- Insert Biaya: Jenis_Biaya='obat', Jumlah_Biaya = Harga_Satuan * Jumlah<br/>- FK: ID_Kunjungan, ID_Obat (opsional)<br/>- Relasi: Obat 1:N Biaya (opsional)"]
+    
+    M --> K
+    
+    K --> N["Proses Pembayaran<br/>- Insert Pembayaran: Jumlah_Total (sum Biaya), Metode_Pembayaran, Status_Pembayaran<br/>- FK: ID_Kunjungan, ID_Pegawai_Kasir<br/>- Relasi: Kunjungan 1:N Pembayaran, Pegawai 1:N Pembayaran"]
+    
+    N --> O{"Pembayaran Lunas?"}
+    
+    O -->|No| P["Catat Cicilan/Belum Lunas<br/>- Update Pembayaran: Status_Pembayaran='Belum Lunas', Catatan_Pembayaran<br/>- Relasi: Pegawai 1:N Pembayaran (kasir)"]
+    
+    P --> Q["End: Proses Selesai, Pasien Pulang"]
+    
+    O -->|Yes| R["Buat Laporan Opsional<br/>- Insert Laporan: Jenis_Laporan (kunjungan/harian), Deskripsi, Tanggal_Laporan<br/>- FK: ID_Pegawai (Admin/Dokter)<br/>- Relasi: Pegawai 1:N Laporan"]
+    
+    R --> Q
+    
+    style A fill:#90EE90
+    style Q fill:#FFB6C1
+    style D fill:#FFD700
+    style J fill:#FFD700
+    style O fill:#FFD700
